@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <memory.h>
+void intput(double n, double* x, double* y);
+double hanshu1(int i, double* x, double* y);
+double hanshu2(int i, double h, double k1, double* x, double* y);
+double hanshu3(int i, double h, double k2, double* x, double* y);
+double hanshu4(int i, double h, double k3, double* x, double* y);
+
+int main()
+{
+	double h, k1, k2, k3, k4;
+	double n, * x = NULL, * y = NULL, xn, x0;
+	int i;
+	//memset(x,0,n);
+	//memset(y,2,1);不懂用这一函数
+	x0 = 0;
+	h = 0.01;
+	xn = 1;//scanf ("%lf",&xn);
+	n = (xn - x0) / h;//之前一直没有定义x[0],所以调试不出来。现在用一常量x0代替x[0];
+	//printf ("%lf\n",n);
+	x = (double*)malloc(n * sizeof(double));
+	y = (double*)malloc(n * sizeof(double));//向系统申请内存
+	if (x == NULL || y == NULL)//确保指针在使用前不是空指针
+	{
+		printf("No enough memory!\n");
+		exit(1);
+	}/*判断内存是否分配成功，不成功则终止整个程序的执行*/
+	//*x=0;
+	//*y=2;
+	//printf ("%lf %lf\n",*x,*y);
+	intput(n, x, y);
+	for (i = 0; i < n; i++)
+	{
+		k1 = hanshu1(i, x, y);
+		k2 = hanshu2(i, h, k1, x, y);
+		k3 = hanshu3(i, h, k2, x, y);
+		k4 = hanshu4(i, h, k3, x, y);
+		y[i + 1] = y[i] + h / 6 * (k1 + 2 * k2 + 2 * k3 + k4);
+		x[i + 1] = x[i] + h;
+		/*printf("%lf %lf %lf %lf\n",k1,k2,k3,k4);*/
+	}
+	for (i = 0; i <= n; i++)
+	{
+		printf("%.2f %lf\n", x[i], y[i]);
+	}
+	free(x);
+	free(y);
+	return 0;
+}
+
+void intput(double n, double* x, double* y)
+{
+	int i;
+	for (i = 0; i < n; i++)
+	{
+		if (i == 0)
+		{
+			x[i] = 0;
+			y[i] = 2;
+		}
+		else
+		{
+			x[i] = 0;
+			y[i] = 0;
+		}
+		//scanf ("%d %d",&p[i],&q[i]);
+	}
+}
+double hanshu1(int i, double* x, double* y)
+{
+	double s1;
+	s1 = 2 * exp(-x[i] * y[i]);
+	return s1;
+}
+double hanshu2(int i, double h, double k1, double* x, double* y)
+{
+	double s2, x1;
+	x1 = x[i] + h / 2;
+	/*printf ("%lf\n",x1);*/
+	s2 = 2 * exp(-x1 * (y[i] + h / 2 * k1));
+	return s2;
+}
+double hanshu3(int i, double h, double k2, double* x, double* y)
+{
+	double s3, x2;
+	x2 = x[i] + h / 2;
+	/*printf ("%lf\n",x2);*/
+	s3 = 2 * exp(-x2 * (y[i] + h / 2 * k2));
+	return s3;
+}
+double hanshu4(int i, double h, double k3, double* x, double* y)
+{
+	double s4, x3;
+	x3 = x[i] + h;
+	/*printf ("%lf\n",x3);*/
+	s4 = 2 * exp(-x3 * (y[i] + h * k3));
+	return s4;
+}
