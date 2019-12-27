@@ -1,0 +1,141 @@
+// 热传导方程数值解.cpp: 定义控制台应用程序的入口点。
+//
+
+#include "stdafx.h"
+#include "cmath"
+#include"stdlib.h"
+#pragma warning(disable:4996)
+
+int main()
+{
+	FILE *fp1, *fp2;
+	fp1 = fopen("commence_temperture.doc", "w+");//打开文件1
+	double T[231] = { 0 }, A[231][231] = { 0 }, B[231] = { 0 };//前两个参数为结点位置参数，后一个参数为时刻参数
+	double delta_x = 0.02, delta_y = 0.02, delta_t = 0.01, sum = 0.0;
+	double t, m;
+	double rho = 7820, k = 36, Cp = 460, h = 2500;
+	int i, j, x, y, z, n = 0;
+	for (y = 0; y < 11; y++)//计算t=0时刻各个结点的温度分布
+	{
+		for (x = 0; x < 21; x++)
+		{
+			i = 21 * y + x;
+			T[i] = 353 - 22.5*(pow((x*delta_x - 0.2) / 0.2, 2) + pow((y*delta_y - 0.1) / 0.1, 2));
+			//printf("T(%.2f,%.2f)=%.3f\n", 0.02*x, 0.02*y, T[x][y]);
+			fprintf(fp1, "t=0.00s T(%d)=%.3f\n", i, T[i]);
+		}
+	}
+	printf("commence_temperture.doc文件成功被写入\n");//打开文件2
+	fp2 = fopen("solution.doc", "w+");//输出题目要求的结点温度
+	for (z = 1; z <= 200; z++)
+	{
+		for (i = 0; i < 231; i++)
+		{
+			B[i] = T[i];
+			//fprintf(fp2, "B[%d]=%0.3f\n", i, B[i]);
+		}
+		for (y = 1; y < 10; y++)//内部节点的系数矩阵赋值
+		{
+			for (x = 1; x < 20; x++)
+			{
+				i = 21 * y + x;
+				A[i][i - 21] = (-k / pow(delta_y, 2)) / (rho*Cp / delta_t);
+				A[i][i - 1] = (-k / pow(delta_x, 2)) / (rho*Cp / delta_t);
+				A[i][i] = (rho*Cp / delta_t + 2 * k / pow(delta_y, 2) + 2 * k / pow(delta_x, 2)) / (rho*Cp / delta_t);
+				A[i][i + 1] = (-k / pow(delta_x, 2)) / (rho*Cp / delta_t);
+				A[i][i + 21] = (-k / pow(delta_y, 2)) / (rho*Cp / delta_t);
+			}
+		}
+		for (i = 0; i <= 20; i++)//下边界结点的系数矩阵和常数矩阵赋值
+		{
+			A[i][i] = k / delta_y + h;
+			A[i][i + 21] = -k / delta_y;
+			B[i] = 298 * h;
+		}
+		for (i = 21; i <= 210; i = i + 21)//左边界结点的系数矩阵和常数矩阵赋值
+		{
+			A[i][i + 1] = -k / delta_x;
+			A[i][i] = k / delta_x + h;
+			B[i] = 298 * h;
+		}
+		for (i = 41; i <= 230; i = i + 21)//右边界结点的系数矩阵和常数矩阵赋值
+		{
+			A[i][i] = k / delta_x + h;
+			A[i][i - 1] = -k / delta_x;
+			B[i] = 298 * h;
+		}
+		for (i = 211; i < 230; i++)//上边界结点的系数矩阵和常数矩阵赋值
+		{
+			A[i][i] = k / delta_y + h;
+			A[i][i - 21] = -k / delta_y;
+			B[i] = 298 * h;
+		}
+	     /*Jacobi迭代法求解矩阵方程*/
+		int max = 50;//最大迭代次数
+		double T_previous[231] = { 0 };//上一步迭代的结果
+		double residual = 0.0, dis = 0.0, dif = 1.0, eps = 1.0e-3;//residual残差，dis两次迭代的差值，eps为精度
+		for (n = 1; (n < max) && (dif > eps); n++)
+		{
+			dif = 0.0;//dif每次迭代后的精度
+			for (i = 0; i < 231; i++)
+			{
+				for (j = 0; j < 231; j++)
+				{
+					if (i != j)
+					{
+						sum += A[i][j] * T_previous[j];
+					}
+				}
+				T[i] = (B[i] - sum) / A[i][i];
+				sum = 0.0;
+			}
+			residual = 0.0;
+			for (i = 0; i < 231; i++)
+			{
+				dis = fabs(T[i] - T_previous[i]);
+				if (dis > residual)
+					residual = dis;
+			}
+			dif = residual;
+			for (i = 0; i < 231; i++)
+			{
+				T_previous[i] = T[i];
+			}	
+		}				
+		if (z == 180)//打印出某时刻的结点温度分布(控制台显示)
+		{
+			t = z * 0.01;
+			for (i = 0; i < 231; i++)
+			{
+				printf("t=%.2fs  T[%d]=%.3f\n", t, i, T[i]);
+			}
+		}
+		if (z == 50 || z == 100 || z == 150 || z == 200)
+		{
+			for (i = 0; i < 231; i++)//打印x=0.2m这条线上的结点温度分布
+			{
+				t = z * 0.01;
+				if ((i - 10) % 21 == 0)
+				{
+					m = 0.2;
+					//printf("%lf %lf  T[%d]=%lf\n", t, m, i, T[i]);
+					fprintf(fp2, "t=%.2fs  x=%.2fm  T=%.3f\n", t, m, T[i]);
+				}
+			}
+			for (i = 0; i < 231; i++)//打印x=0.1m这条线上的结点温度分布
+			{
+				t = z * 0.01;
+				if ((i - 5) % 21 == 0)
+				{
+					m = 0.1;
+					//printf("%lf %lf  T[%d]=%lf\n", t, m, i, T[i]);
+					fprintf(fp2, "t=%.2fs  x=%.2fm  T=%.3f\n", t, m, T[i]);
+				}
+			}
+		}
+	}
+	fclose(fp1);//关闭文件1
+	fclose(fp2);//关闭文件2
+	printf("solution.doc文件成功被写入！\n");
+	return 0;
+}
